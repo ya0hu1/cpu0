@@ -1,0 +1,11 @@
+/build/
+/third_party/
+__pycache__/
+*.py[cod]
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+compile_commands.json
+.cache/
