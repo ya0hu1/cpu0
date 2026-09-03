@@ -63,3 +63,20 @@ class RiscvToyI<bits<3> funct3, bits<7> opcode,
   let Inst{11-7} = rd;
   let Inst{6-0} = opcode;
 }
+
+// S-type: imm12[11:5] | rs2 | rs1 | funct3 | imm12[4:0] | opcode
+class RiscvToyS<bits<3> funct3, bits<7> opcode,
+                dag outs, dag ins, string opcodestr, string argstr,
+                list<dag> pattern>
+    : RiscvToyInst<outs, ins, opcodestr # "\t" # argstr, pattern> {
+  bits<12> imm12;
+  bits<5> rs2;
+  bits<5> rs1;
+
+  let Inst{31-25} = imm12{11-5};
+  let Inst{24-20} = rs2;
+  let Inst{19-15} = rs1;
+  let Inst{14-12} = funct3;
+  let Inst{11-7} = imm12{4-0};
+  let Inst{6-0} = opcode;
+}

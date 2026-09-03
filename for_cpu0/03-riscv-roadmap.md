@@ -28,6 +28,7 @@ for_cpu0/
     02-registers-and-callingconv.md
     03-instruction-encoding.md
     04-first-codegen.md
+    05-function-call-frame.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -181,21 +182,19 @@ MCTargetDesc/
 - 溢出；
 - 16 字节栈对齐。
 
-需要引入：
+已完成。中文说明见
+[riscv/05-function-call-frame.md](riscv/05-function-call-frame.md)。
 
-- `call` 与 `ret` 的寄存器保存；
-- `ra` 的保存和恢复；
-- `sp` 调整；
-- 局部变量和溢出；
-- `sw/lw` 这类访存指令。
+目前支持：
 
-对应文件：
+- `lw/sw`；
+- `alloca` 与 FrameIndex 消除；
+- callee-saved 保存恢复，包括 `ra`；
+- 直接函数调用和 8 个以内的寄存器参数；
+- 分段的大栈帧调整。
 
-```text
-RiscvToyFrameLowering.cpp
-RiscvToyInstrInfo.cpp
-RiscvToyRegisterInfo.cpp
-```
+尚未支持：栈上传参、varargs、间接调用、复杂返回值和 object 文件编码。
+后两类留给 MC 层阶段处理。
 
 ## 阶段 6：分支、比较和条件选择
 

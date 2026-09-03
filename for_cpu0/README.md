@@ -13,3 +13,4 @@
 - [riscv/02-registers-and-callingconv.md](riscv/02-registers-and-callingconv.md)：RiscvToy 寄存器模型与调用约定表
 - [riscv/03-instruction-encoding.md](riscv/03-instruction-encoding.md)：RiscvToy Stage 3 RV32I 指令编码表
 - [riscv/04-first-codegen.md](riscv/04-first-codegen.md)：RiscvToy Stage 4 首个 RISC-V 汇编输出
+- [riscv/05-function-call-frame.md](riscv/05-function-call-frame.md)：RiscvToy Stage 5 函数调用与栈帧

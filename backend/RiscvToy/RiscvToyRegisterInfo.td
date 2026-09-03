@@ -57,15 +57,18 @@ let RegAltNameIndices = [ABIRegAltName],
   def X31 : RiscvToyReg<31, "x31", ["t6"]>,   DwarfRegNum<[31]>;
 }
 
-// GPR is the normal allocatable class. The order intentionally puts
-// caller-saved argument/temp registers first, then callee-saved registers,
-// then the specials.
+// GPR is the normal register class used by integer instructions. X1 is needed
+// for the return address and X2-X4 are needed when code explicitly references
+// sp/gp/tp; the latter are reserved in C++, so the allocator still cannot
+// choose them for ordinary values. The order intentionally puts caller-saved
+// argument/temp registers first, then callee-saved registers, then specials.
 def GPR : RegisterClass<"RiscvToy", [i32], 32, (add
     (sequence "X%u", 10, 17),
     (sequence "X%u", 5, 7),
     (sequence "X%u", 28, 31),
     (sequence "X%u", 8, 9),
-    (sequence "X%u", 18, 27)
+    (sequence "X%u", 18, 27),
+    X4, X3, X2, X1
   )>;
 
 // X0 is not allocatable because reads return 0 and writes are discarded.

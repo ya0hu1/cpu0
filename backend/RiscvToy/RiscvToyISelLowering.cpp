@@ -32,6 +32,8 @@ RiscvToyTargetLowering::RiscvToyTargetLowering(const TargetMachine &TM,
 
 const char *RiscvToyTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
+  case RiscvToyISD::CALL:
+    return "RiscvToyISD::CALL";
   case RiscvToyISD::RET_FLAG:
     return "RiscvToyISD::RET_FLAG";
   default:
@@ -76,7 +78,112 @@ SDValue RiscvToyTargetLowering::LowerFormalArguments(
 
 SDValue RiscvToyTargetLowering::LowerCall(CallLoweringInfo &CLI,
                                           SmallVectorImpl<SDValue> &InVals) const {
-  report_fatal_error("RiscvToy function calls are not supported yet");
+  SelectionDAG &DAG = CLI.DAG;
+  SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
+  SmallVectorImpl<SDValue> &OutVals = CLI.OutVals;
+  SmallVectorImpl<ISD::InputArg> &Ins = CLI.Ins;
+  SDValue Chain = CLI.Chain;
+  SDValue Callee = CLI.Callee;
+  bool &IsTailCall = CLI.IsTailCall;
+  CallingConv::ID CallConv = CLI.CallConv;
+  bool IsVarArg = CLI.IsVarArg;
+  MachineFunction &MF = DAG.getMachineFunction();
+
+  if (CallConv != CallingConv::C && CallConv != CallingConv::Fast)
+    report_fatal_error("Unsupported calling convention");
+
+  // RiscvToy does not implement tail calls yet. Lowering it as a regular call
+  // keeps the stack frame and ra handling simple.
+  IsTailCall = false;
+
+  SmallVector<CCValAssign, 16> ArgLocs;
+  CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext());
+  CCInfo.AnalyzeCallOperands(Outs, CC_RiscvToy_ILP32);
+
+  if (CCInfo.getNextStackOffset() != 0 || IsVarArg)
+    report_fatal_error("RiscvToy stack arguments and varargs are not supported");
+
+  EVT PtrVT = getPointerTy(MF.getDataLayout());
+  Chain = DAG.getCALLSEQ_START(Chain, 0, 0, CLI.DL);
+
+  SDValue Glue;
+  SmallVector<std::pair<unsigned, SDValue>, 8> RegsToPass;
+
+  for (unsigned I = 0, E = ArgLocs.size(); I != E; ++I) {
+    CCValAssign &VA = ArgLocs[I];
+    SDValue Arg = OutVals[I];
+
+    if (!VA.isRegLoc() || VA.getLocVT() != MVT::i32)
+      report_fatal_error("RiscvToy only lowers i32 register arguments");
+
+    if (VA.getLocInfo() == CCValAssign::SExt)
+      Arg = DAG.getNode(ISD::SIGN_EXTEND, CLI.DL, VA.getLocVT(), Arg);
+    else if (VA.getLocInfo() == CCValAssign::ZExt)
+      Arg = DAG.getNode(ISD::ZERO_EXTEND, CLI.DL, VA.getLocVT(), Arg);
+    else if (VA.getLocInfo() == CCValAssign::AExt)
+      Arg = DAG.getNode(ISD::ANY_EXTEND, CLI.DL, VA.getLocVT(), Arg);
+
+    RegsToPass.push_back(std::make_pair(VA.getLocReg(), Arg));
+  }
+
+  for (auto &Reg : RegsToPass) {
+    Chain = DAG.getCopyToReg(Chain, CLI.DL, Reg.first, Reg.second, Glue);
+    Glue = Chain.getValue(1);
+  }
+
+  if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee))
+    Callee = DAG.getTargetGlobalAddress(G->getGlobal(), CLI.DL, PtrVT,
+                                        G->getOffset());
+  else if (ExternalSymbolSDNode *E = dyn_cast<ExternalSymbolSDNode>(Callee))
+    Callee = DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT);
+  else
+    report_fatal_error("RiscvToy indirect calls are not supported yet");
+
+  SmallVector<SDValue, 8> Ops;
+  Ops.push_back(Chain);
+  Ops.push_back(Callee);
+
+  for (auto &Reg : RegsToPass)
+    Ops.push_back(DAG.getRegister(Reg.first, Reg.second.getValueType()));
+
+  if (Glue.getNode())
+    Ops.push_back(Glue);
+
+  SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
+  Chain = DAG.getNode(RiscvToyISD::CALL, CLI.DL, NodeTys, Ops);
+  Glue = Chain.getValue(1);
+
+  Chain = DAG.getCALLSEQ_END(
+      Chain, DAG.getConstant(0, CLI.DL, PtrVT, true),
+      DAG.getConstant(0, CLI.DL, PtrVT, true), Glue, CLI.DL);
+  Glue = Chain.getValue(1);
+
+  return LowerCallResult(Chain, Glue, CallConv, IsVarArg, Ins, CLI.DL, DAG,
+                         InVals);
+}
+
+SDValue RiscvToyTargetLowering::LowerCallResult(
+    SDValue Chain, SDValue InFlag, CallingConv::ID CallConv, bool IsVarArg,
+    const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &DL,
+    SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
+  MachineFunction &MF = DAG.getMachineFunction();
+
+  SmallVector<CCValAssign, 16> RVLocs;
+  CCState CCInfo(CallConv, IsVarArg, MF, RVLocs, *DAG.getContext());
+  CCInfo.AnalyzeCallResult(Ins, RetCC_RiscvToy_ILP32);
+
+  for (CCValAssign &VA : RVLocs) {
+    if (!VA.isRegLoc() || VA.getLocVT() != MVT::i32)
+      report_fatal_error("RiscvToy only supports i32 register returns");
+
+    SDValue Val = DAG.getCopyFromReg(Chain, DL, VA.getLocReg(),
+                                     VA.getValVT(), InFlag);
+    Chain = Val.getValue(1);
+    InFlag = Val.getValue(2);
+    InVals.push_back(Val);
+  }
+
+  return Chain;
 }
 
 bool RiscvToyTargetLowering::CanLowerReturn(

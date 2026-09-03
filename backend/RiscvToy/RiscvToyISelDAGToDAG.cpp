@@ -9,6 +9,7 @@
 #include "RiscvToy.h"
 #include "RiscvToySubtarget.h"
 #include "RiscvToyTargetMachine.h"
+#include "llvm/CodeGen/SelectionDAG.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 
 using namespace llvm;
@@ -35,12 +36,22 @@ public:
   }
 
 private:
+  bool SelectAddrFI(SDValue Addr, SDValue &Base);
+
 #include "RiscvToyGenDAGISel.inc"
 
   void Select(SDNode *N) override { SelectCode(N); }
 };
 
 } // namespace
+
+bool RiscvToyDAGToDAGISel::SelectAddrFI(SDValue Addr, SDValue &Base) {
+  if (auto *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+    Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), MVT::i32);
+    return true;
+  }
+  return false;
+}
 
 FunctionPass *llvm::createRiscvToyISelDag(RiscvToyTargetMachine &TM,
                                           CodeGenOpt::Level OptLevel) {
