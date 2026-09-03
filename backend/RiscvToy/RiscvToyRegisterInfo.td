@@ -85,6 +85,13 @@ def GPRNoX0 : RegisterClass<"RiscvToy", [i32], 32, (add
 // SP is a singleton class used by frame/stack lowering.
 def SP : RegisterClass<"RiscvToy", [i32], 32, (add X2)>;
 
+// GPRFull is the architectural register file, including x0. It is useful for
+// instructions which must be able to reference x0, such as JALR. CodeGen
+// patterns should normally use GPR instead so the allocator cannot choose x0.
+def GPRFull : RegisterClass<"RiscvToy", [i32], 32, (add
+    (sequence "X%u", 0, 31)
+  )>;
+
 // Callee-saved registers follow the standard RV32I ILP32 convention:
 // ra, gp, tp, s0-s11.
 def CSR_ILP32 : CalleeSavedRegs<(add X1, X3, X4, X8, X9,

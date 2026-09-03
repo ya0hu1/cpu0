@@ -10,6 +10,7 @@ include "llvm/Target/Target.td"
 
 include "RiscvToyRegisterInfo.td"
 include "RiscvToyCallingConv.td"
+include "RiscvToyInstrInfo.td"
 
 def RiscvToyInstrInfo : InstrInfo;
 

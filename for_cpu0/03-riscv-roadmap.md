@@ -16,6 +16,7 @@ backend/RiscvToy/
   RiscvToy.td
   RiscvToyRegisterInfo.td
   RiscvToyInstrInfo.td
+  RiscvToyInstrFormats.td
   RiscvToyCallingConv.td
   RiscvToyTargetMachine.cpp
   TargetInfo/
@@ -25,6 +26,7 @@ for_cpu0/
   riscv/
     01-minimal-target.md
     02-registers-and-callingconv.md
+    03-instruction-encoding.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -51,7 +53,7 @@ backend/test/CodeGen/RiscvToy/
 ```text
 Triple: riscvtoy
 Target: RiscvToy
-DataLayout: E-m:e-p:32:32-i64:64-n32-S64
+DataLayout: e-m:e-p:32:32-i64:64-n32-S128
 ```
 
 实现说明：
@@ -113,9 +115,40 @@ def GPR : RegisterClass<"RiscvToy", [i32], 32,
 - `sp` 为什么通常单独处理？
 - caller-saved 和 callee-saved 如何划分？
 
-## 阶段 3：最小指令和调用约定
+## 阶段 3：指令编码模型
 
-先支持这些 LLVM IR 场景：
+已完成 RV32I 指令表和 SelectionDAG pattern，说明见
+[riscv/03-instruction-encoding.md](riscv/03-instruction-encoding.md)。
+
+本阶段加入了：
+
+- R 型指令：`add`、`sub`、`and`、`or`、`xor`；
+- I 型指令：`addi`；
+- `jalr` 真指令和 `ret` pseudo；
+- `PseudoRET` 到 `jalr x0, ra, 0` 的展开关系；
+- `GPRFull`，让机器指令可以显式引用 `x0`；
+- `RiscvToyGenInstrInfo.inc` 与 `RiscvToyGenDAGISel.inc`。
+
+后续阶段再把这些“卡片”接进 CodeGen。
+
+## 阶段 4：CodeGen 对象层
+
+打开 `RiscvToyTargetMachine` 的代码生成前，先补标准后端对象：
+
+```text
+RiscvToySubtarget
+RiscvToyRegisterInfo
+RiscvToyInstrInfo
+RiscvToyTargetLowering
+RiscvToyFrameLowering
+```
+
+这一层把 Stage 2 的寄存器表和 Stage 3 的指令表提供给 SelectionDAG、
+寄存器分配器和栈帧处理。
+
+## 阶段 5：输出第一个汇编
+
+目标场景：
 
 ```llvm
 define i32 @add(i32 %a, i32 %b) {
@@ -124,13 +157,13 @@ define i32 @add(i32 %a, i32 %b) {
 }
 ```
 
-需要定义：
+输出：
 
-- `ADD`、`SUB`、`AND`、`OR`、`XOR`；
-- `ADDI`；
-- `LUI`；
-- `JAL`、`JALR`；
-- load/store 指令。
+```asm
+add:
+  add a0, a0, a1
+  ret
+```
 
 调用约定先只处理：
 
@@ -139,17 +172,10 @@ define i32 @add(i32 %a, i32 %b) {
 - 返回值放 `a0`；
 - 栈对齐 16 字节。
 
-这个阶段的核心是让 `llc` 输出：
+需要补 `MCAsmInfo`、`MCInstPrinter`、`AsmPrinter`，并让 TargetMachine 使用默认
+`addPassesToEmitFile()`。
 
-```asm
-add:
-  add a0, a0, a1
-  ret
-```
-
-实际 pseudoinstruction expansion 中，`ret` 通常由 `JALR x0, ra, 0` 展开。
-
-## 阶段 4：栈帧和 callee-saved 寄存器
+## 阶段 6：栈帧和 callee-saved 寄存器
 
 引入函数调用后必须处理：
 
@@ -167,7 +193,7 @@ RiscvToyInstrInfo.cpp
 RiscvToyRegisterInfo.cpp
 ```
 
-## 阶段 5：分支、比较和条件选择
+## 阶段 7：分支、比较和条件选择
 
 LLVM IR 中的：
 
@@ -186,7 +212,7 @@ bne / beq / blt / bge / bltu / bgeu
 
 这个阶段最容易暴露 legalizer 和 pattern 的理解问题。
 
-## 阶段 6：MC 层
+## 阶段 8：MC 层
 
 按 Cpu0 的结构补：
 
@@ -204,7 +230,7 @@ Disassembler/（可选后置）
 3. AsmBackend 支持 PC-relative fixup；
 4. ELFObjectWriter 输出目标文件。
 
-## 阶段 7：测试体系
+## 阶段 9：测试体系
 
 每个阶段至少加一个 LLVM lit 测试：
 
