@@ -27,6 +27,7 @@ for_cpu0/
     01-minimal-target.md
     02-registers-and-callingconv.md
     03-instruction-encoding.md
+    04-first-codegen.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -129,26 +130,12 @@ def GPR : RegisterClass<"RiscvToy", [i32], 32,
 - `GPRFull`，让机器指令可以显式引用 `x0`；
 - `RiscvToyGenInstrInfo.inc` 与 `RiscvToyGenDAGISel.inc`。
 
-后续阶段再把这些“卡片”接进 CodeGen。
+## 阶段 4：首个 RISC-V 汇编输出
 
-## 阶段 4：CodeGen 对象层
+已完成。说明见
+[riscv/04-first-codegen.md](riscv/04-first-codegen.md)。
 
-打开 `RiscvToyTargetMachine` 的代码生成前，先补标准后端对象：
-
-```text
-RiscvToySubtarget
-RiscvToyRegisterInfo
-RiscvToyInstrInfo
-RiscvToyTargetLowering
-RiscvToyFrameLowering
-```
-
-这一层把 Stage 2 的寄存器表和 Stage 3 的指令表提供给 SelectionDAG、
-寄存器分配器和栈帧处理。
-
-## 阶段 5：输出第一个汇编
-
-目标场景：
+这个里程碑同时接入了 SelectionDAG 和 MC 打印层。现在 `llc` 可以把：
 
 ```llvm
 define i32 @add(i32 %a, i32 %b) {
@@ -157,7 +144,7 @@ define i32 @add(i32 %a, i32 %b) {
 }
 ```
 
-输出：
+打印成：
 
 ```asm
 add:
@@ -165,17 +152,26 @@ add:
   ret
 ```
 
-调用约定先只处理：
+加入的标准对象：
 
-- 第一个整数参数放 `a0`；
-- 第二个整数参数放 `a1`；
+```text
+RiscvToySubtarget
+RiscvToyRegisterInfo
+RiscvToyInstrInfo
+RiscvToyTargetLowering
+RiscvToyFrameLowering
+RiscvToyAsmPrinter
+MCTargetDesc/
+```
+
+调用约定当前只支持：
+
+- 前 8 个整数参数放 `a0-a7`；
 - 返回值放 `a0`；
-- 栈对齐 16 字节。
+- 16 字节栈对齐；
+- 无函数调用、无栈上局部变量。
 
-需要补 `MCAsmInfo`、`MCInstPrinter`、`AsmPrinter`，并让 TargetMachine 使用默认
-`addPassesToEmitFile()`。
-
-## 阶段 6：栈帧和 callee-saved 寄存器
+## 阶段 5：函数调用和栈帧
 
 引入函数调用后必须处理：
 
@@ -185,6 +181,14 @@ add:
 - 溢出；
 - 16 字节栈对齐。
 
+需要引入：
+
+- `call` 与 `ret` 的寄存器保存；
+- `ra` 的保存和恢复；
+- `sp` 调整；
+- 局部变量和溢出；
+- `sw/lw` 这类访存指令。
+
 对应文件：
 
 ```text
@@ -193,7 +197,7 @@ RiscvToyInstrInfo.cpp
 RiscvToyRegisterInfo.cpp
 ```
 
-## 阶段 7：分支、比较和条件选择
+## 阶段 6：分支、比较和条件选择
 
 LLVM IR 中的：
 
@@ -212,7 +216,7 @@ bne / beq / blt / bge / bltu / bgeu
 
 这个阶段最容易暴露 legalizer 和 pattern 的理解问题。
 
-## 阶段 8：MC 层
+## 阶段 7：完整 MC 层
 
 按 Cpu0 的结构补：
 
@@ -225,12 +229,14 @@ Disassembler/（可选后置）
 
 优先级：
 
-1. InstPrinter 能打印汇编；
-2. MCCodeEmitter 能编码 32 位指令；
-3. AsmBackend 支持 PC-relative fixup；
-4. ELFObjectWriter 输出目标文件。
+1. MCCodeEmitter 能编码 32 位指令；
+2. AsmBackend 支持 PC-relative fixup；
+3. ELFObjectWriter 输出目标文件。
 
-## 阶段 9：测试体系
+说明：Stage 4 已经完成了 `InstPrinter` 和文本汇编输出，这一阶段主要让
+`-filetype=obj` 和后续工具链真正可执行。
+
+## 阶段 8：测试体系
 
 每个阶段至少加一个 LLVM lit 测试：
 

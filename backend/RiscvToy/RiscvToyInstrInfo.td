@@ -77,6 +77,10 @@ def RiscvToyJALR : RiscvToyI<0b000, 0b1100111,
                              "jalr", "$rd, ${imm12}(${rs1})", []>;
 } // hasSideEffects = 0, mayLoad = 0, mayStore = 0
 
+// Keep the internal instruction real (jalr x0, 0(ra)), but print the usual
+// assembly mnemonic "ret".
+def : InstAlias<"ret", (RiscvToyJALR X0, X1, 0), 4>;
+
 let isReturn = 1, isBarrier = 1, isTerminator = 1, isCodeGenOnly = 1 in
 def PseudoRET : RiscvToyPseudo<(outs), (ins), "ret", [(RiscvToyRetFlag)]>,
                 PseudoInstExpansion<(RiscvToyJALR X0, X1, 0)>;
