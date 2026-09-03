@@ -10,12 +10,13 @@ if [[ ! -f "${SOURCE_DIR}/CMakeLists.txt" ]]; then
   exit 1
 fi
 
-if ! command -v ninja >/dev/null 2>&1; then
-  echo "ninja is required. Install it, for example: sudo apt install ninja-build" >&2
-  exit 1
+if command -v ninja >/dev/null 2>&1; then
+  GENERATOR="Ninja"
+else
+  GENERATOR="Unix Makefiles"
 fi
 
-cmake -G Ninja \
+cmake -G "${GENERATOR}" \
   -S "${SOURCE_DIR}" \
   -B "${BUILD_DIR}" \
   -DCMAKE_BUILD_TYPE=Release \
@@ -23,4 +24,7 @@ cmake -G Ninja \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
   -DLLVM_TARGETS_TO_BUILD=Cpu0
 
-ninja -C "${BUILD_DIR}" llc opt llvm-as llvm-dis clang
+JOBS="${JOBS:-4}"
+cmake --build "${BUILD_DIR}" \
+  --parallel "${JOBS}" \
+  --target llc opt llvm-as llvm-dis clang llvm-objdump

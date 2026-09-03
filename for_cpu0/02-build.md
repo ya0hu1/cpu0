@@ -19,11 +19,14 @@ e8a397203c67adbeae04763ce25c6a5ae76af52c
 
 然后：
 
-1. 覆盖 `llvm-overlay/llvm/` 下的文件；
+1. 覆盖 `llvm-overlay/llvm/` 下的全部文件；
 2. 把 `backend/Cpu0` 复制到 `llvm/lib/Target/Cpu0`；
 3. 把测试复制到 `llvm/test/CodeGen/Cpu0`。
 
 这样 LLVM 源码目录就变成一个带 Cpu0 后端的 LLVM。
+
+`llvm-overlay` 的完整文件清单和用途见
+[04-llvm-overlay.md](04-llvm-overlay.md)。
 
 ## 2. 安装依赖
 
@@ -31,9 +34,12 @@ Ubuntu 22.04 下一般需要：
 
 ```bash
 sudo apt update
-sudo apt install build-essential git cmake ninja-build python3 zlib1g-dev \
+sudo apt install build-essential git cmake python3 zlib1g-dev \
   libzstd-dev libtinfo-dev
 ```
+
+`ninja-build` 不是必须的。如果机器上有 `ninja`，构建脚本会使用 Ninja；
+没有时脚本会自动回退到 `Unix Makefiles` 和 `cmake --build`。
 
 如果只想先准备文档和仓库，可以稍后再安装。
 
@@ -61,6 +67,10 @@ third_party/llvm-project
 
 ```text
 build/bin/llc
+build/bin/opt
+build/bin/llvm-as
+build/bin/llvm-dis
+build/bin/llvm-objdump
 build/bin/clang
 ```
 
@@ -68,27 +78,28 @@ build/bin/clang
 
 ## 5. 一个最小验证
 
-准备 `test/add.c`：
-
-```c
-int add(int a, int b) {
-  return a + b;
-}
-```
-
-生成 LLVM IR：
+直接使用仓库内的最小 IR：
 
 ```bash
-build/bin/clang --target=cpu0 -S -emit-llvm test/add.c -o add.ll
+build/bin/llc -march=cpu0 examples/cpu0/add.ll -o add.s
 ```
 
-生成 Cpu0 汇编：
+也可以从 C 生成 IR。教程里用 `mips-unknown-linux-gnu` triple，是因为 Cpu0
+刻意仿照 MIPS 的 32 位调用约定：
 
 ```bash
-build/bin/llc -march=cpu0 add.ll -o add.s
+build/bin/clang -target mips-unknown-linux-gnu -S -emit-llvm \
+  examples/cpu0/add.c -o /tmp/add.ll
+build/bin/llc -march=cpu0 /tmp/add.ll -o /tmp/add.s
 ```
 
-如果 `llc` 能输出 Cpu0 汇编，说明后端已经接入。
+如果 `llc` 能输出类似下面的 Cpu0 汇编，说明后端已经接入：
+
+```asm
+add:
+	addu	$2, $4, $5
+	ret	$lr
+```
 
 ## 6. 运行回归测试
 
@@ -99,7 +110,7 @@ build/bin/llc -march=cpu0 add.ll -o add.s
 等价于：
 
 ```bash
-ninja -C build check-llvm-codegen-cpu0
+build/bin/llvm-lit -sv third_party/llvm-project/llvm/test/CodeGen/Cpu0
 ```
 
 如果测试失败，优先检查：
