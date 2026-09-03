@@ -15,3 +15,4 @@
 - [riscv/04-first-codegen.md](riscv/04-first-codegen.md)：RiscvToy Stage 4 首个 RISC-V 汇编输出
 - [riscv/05-function-call-frame.md](riscv/05-function-call-frame.md)：RiscvToy Stage 5 函数调用与栈帧
 - [riscv/06-branches-select.md](riscv/06-branches-select.md)：RiscvToy Stage 6 分支、比较和条件选择
+- [riscv/07-mc-object.md](riscv/07-mc-object.md)：RiscvToy Stage 7 目标文件、机器码编码与重定位

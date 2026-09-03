@@ -7,6 +7,7 @@ tablegen(LLVM RiscvToyGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM RiscvToyGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM RiscvToyGenSubtargetInfo.inc -gen-subtarget)
 tablegen(LLVM RiscvToyGenAsmWriter.inc -gen-asm-writer)
+tablegen(LLVM RiscvToyGenMCCodeEmitter.inc -gen-emitter)
 
 add_public_tablegen_target(RiscvToyCommonTableGen)
 

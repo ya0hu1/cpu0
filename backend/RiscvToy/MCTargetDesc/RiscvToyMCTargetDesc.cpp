@@ -11,6 +11,8 @@
 #include "RiscvToyMCAsmInfo.h"
 #include "TargetInfo/RiscvToyTargetInfo.h"
 #include "llvm/MC/MCAsmInfo.h"
+#include "llvm/MC/MCAsmBackend.h"
+#include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -64,5 +66,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRiscvToyTargetMC() {
   TargetRegistry::RegisterMCInstrInfo(T, createRiscvToyMCInstrInfo);
   TargetRegistry::RegisterMCRegInfo(T, createRiscvToyMCRegisterInfo);
   TargetRegistry::RegisterMCSubtargetInfo(T, createRiscvToyMCSubtargetInfo);
+  TargetRegistry::RegisterMCAsmBackend(T, createRiscvToyAsmBackend);
+  TargetRegistry::RegisterMCCodeEmitter(T, createRiscvToyMCCodeEmitter);
   TargetRegistry::RegisterMCInstPrinter(T, createRiscvToyMCInstPrinter);
 }

@@ -17,10 +17,13 @@ include "RiscvToyInstrFormats.td"
 // Operand and pattern definitions
 //===----------------------------------------------------------------------===//
 
-def simm12 : Operand<i32>;
+def simm12 : Operand<i32> {
+  let EncoderMethod = "getImmOpValue";
+}
 def call_symbol : Operand<i32>;
 def brtarget : Operand<OtherVT> {
   let PrintMethod = "printOperand";
+  let EncoderMethod = "getBranchTargetOpValue";
 }
 
 def immSExt12 : ImmLeaf<i32, [{ return isInt<12>(Imm); }]>;
@@ -123,31 +126,36 @@ def RiscvToyJALR : RiscvToyI<0b000, 0b1100111,
                              (ins GPRFull:$rs1, simm12:$imm12),
                              "jalr", "$rd, ${imm12}(${rs1})", []>;
 
+let isCall = 1 in
+def RiscvToyJAL : RiscvToyJ<0b1101111,
+                            (outs GPR:$rd), (ins brtarget:$imm20),
+                            "jal", "$rd, $imm20", []>;
+
 let isBranch = 1, isTerminator = 1 in {
 def RiscvToyBEQ : RiscvToyB<0b000, 0b1100011,
                             (outs), (ins GPR:$rs1, GPR:$rs2,
-                                     brtarget:$BrDst),
-                            "beq", "$rs1, $rs2, $BrDst", []>;
+                                     brtarget:$imm12),
+                            "beq", "$rs1, $rs2, $imm12", []>;
 def RiscvToyBNE : RiscvToyB<0b001, 0b1100011,
                             (outs), (ins GPR:$rs1, GPR:$rs2,
-                                     brtarget:$BrDst),
-                            "bne", "$rs1, $rs2, $BrDst", []>;
+                                     brtarget:$imm12),
+                            "bne", "$rs1, $rs2, $imm12", []>;
 def RiscvToyBLT : RiscvToyB<0b100, 0b1100011,
                             (outs), (ins GPR:$rs1, GPR:$rs2,
-                                     brtarget:$BrDst),
-                            "blt", "$rs1, $rs2, $BrDst", []>;
+                                     brtarget:$imm12),
+                            "blt", "$rs1, $rs2, $imm12", []>;
 def RiscvToyBGE : RiscvToyB<0b101, 0b1100011,
                             (outs), (ins GPR:$rs1, GPR:$rs2,
-                                     brtarget:$BrDst),
-                            "bge", "$rs1, $rs2, $BrDst", []>;
+                                     brtarget:$imm12),
+                            "bge", "$rs1, $rs2, $imm12", []>;
 def RiscvToyBLTU : RiscvToyB<0b110, 0b1100011,
                              (outs), (ins GPR:$rs1, GPR:$rs2,
-                                      brtarget:$BrDst),
-                             "bltu", "$rs1, $rs2, $BrDst", []>;
+                                      brtarget:$imm12),
+                             "bltu", "$rs1, $rs2, $imm12", []>;
 def RiscvToyBGEU : RiscvToyB<0b111, 0b1100011,
                              (outs), (ins GPR:$rs1, GPR:$rs2,
-                                      brtarget:$BrDst),
-                             "bgeu", "$rs1, $rs2, $BrDst", []>;
+                                      brtarget:$imm12),
+                             "bgeu", "$rs1, $rs2, $imm12", []>;
 } // isBranch = 1, isTerminator = 1
 } // hasSideEffects = 0, mayLoad = 0, mayStore = 0
 

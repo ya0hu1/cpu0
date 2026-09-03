@@ -99,3 +99,33 @@ class RiscvToyB<bits<3> funct3, bits<7> opcode,
   let Inst{7} = imm12{10};
   let Inst{6-0} = opcode;
 }
+
+// U-type: imm20 | rd | opcode
+class RiscvToyU<bits<7> opcode,
+                dag outs, dag ins, string opcodestr, string argstr,
+                list<dag> pattern>
+    : RiscvToyInst<outs, ins, opcodestr # "\t" # argstr, pattern> {
+  bits<20> imm20;
+  bits<5> rd;
+
+  let Inst{31-12} = imm20;
+  let Inst{11-7} = rd;
+  let Inst{6-0} = opcode;
+}
+
+// J-type: imm20[19|10:1|11|19:12] | rd | opcode. The logical offset is
+// 21 bits with bit 0 always zero.
+class RiscvToyJ<bits<7> opcode,
+                dag outs, dag ins, string opcodestr, string argstr,
+                list<dag> pattern>
+    : RiscvToyInst<outs, ins, opcodestr # "\t" # argstr, pattern> {
+  bits<20> imm20;
+  bits<5> rd;
+
+  let Inst{31} = imm20{19};
+  let Inst{30-21} = imm20{9-0};
+  let Inst{20} = imm20{10};
+  let Inst{19-12} = imm20{18-11};
+  let Inst{11-7} = rd;
+  let Inst{6-0} = opcode;
+}

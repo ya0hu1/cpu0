@@ -30,6 +30,7 @@ for_cpu0/
     04-first-codegen.md
     05-function-call-frame.md
     06-branches-select.md
+    07-mc-object.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -217,48 +218,38 @@ Stage 7。
 
 ## 阶段 7：完整 MC 层
 
-按 Cpu0 的结构补：
+已完成。说明见
+[riscv/07-mc-object.md](riscv/07-mc-object.md)。
+
+按 Cpu0 的结构补的是：
 
 ```text
-InstPrinter/
 MCTargetDesc/
-AsmParser/（可选后置）
-Disassembler/（可选后置）
+  MCCodeEmitter
+  AsmBackend
+  ELFObjectWriter
 ```
 
-优先级：
+现在：
 
-1. MCCodeEmitter 能编码 32 位指令；
-2. AsmBackend 支持 PC-relative fixup；
-3. ELFObjectWriter 输出目标文件。
+1. `llc -filetype=obj` 输出 ELF object；
+2. `PseudoBR/PseudoCALL/PseudoRET` 在编码时展开为真实 `jal/jalr`；
+3. 本地分支由 AsmBackend fixup 填值；
+4. 外部调用输出 `R_RISCV_JAL` relocation。
 
 说明：Stage 4 已经完成了 `InstPrinter` 和文本汇编输出，这一阶段主要让
 `-filetype=obj` 和后续工具链真正可执行。
 
-## 阶段 8：测试体系
+## 阶段 8：MC 工具链与更多代码生成
 
-每个阶段至少加一个 LLVM lit 测试：
+下一步候选：
 
-```llvm
-; RUN: llc -mtriple=riscvtoy < %s | FileCheck %s
+1. AsmParser：让 `llvm-mc` 能把 RiscvToy 汇编文本解析成 MCInst；
+2. Disassembler：让 `llvm-objdump -d` 能反汇编 `.o` 中的 RiscvToy；
+3. 大常量与全局寻址：加入 `lui/auipc`、`lb/lh/lbu/lhu` 等常用 RV32I 指令；
+4. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
 
-define i32 @add(i32 %a, i32 %b) {
-; CHECK-LABEL: add:
-; CHECK: add a0, a0, a1
-; CHECK: ret
-  %sum = add i32 %a, %b
-  ret i32 %sum
-}
-```
-
-测试名和阶段对应，例如：
-
-```text
-01-add.ll
-02-callingconv.ll
-03-frame.ll
-04-branch.ll
-```
+每个阶段仍然先加一个能被 lit 自动回归的 `.ll`/`.s` 测试，再做提交。
 
 ## 为什么不从复制上游 RISCV 开始
 
