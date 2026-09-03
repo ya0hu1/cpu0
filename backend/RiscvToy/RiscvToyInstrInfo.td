@@ -229,9 +229,39 @@ def RiscvToyBGEU : RiscvToyB<0b111, 0b1100011,
 // generic spill machinery must be able to save/restore x1 and frame lowering
 // replaces frame indices with sp.
 let mayLoad = 1, mayStore = 0 in
+def RiscvToyLB : RiscvToyI<0b000, 0b0000011,
+                           (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+                           "lb", "$rd, ${imm12}(${rs1})", []>;
+
+let mayLoad = 1, mayStore = 0 in
+def RiscvToyLBU : RiscvToyI<0b100, 0b0000011,
+                            (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+                            "lbu", "$rd, ${imm12}(${rs1})", []>;
+
+let mayLoad = 1, mayStore = 0 in
+def RiscvToyLH : RiscvToyI<0b001, 0b0000011,
+                           (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+                           "lh", "$rd, ${imm12}(${rs1})", []>;
+
+let mayLoad = 1, mayStore = 0 in
+def RiscvToyLHU : RiscvToyI<0b101, 0b0000011,
+                            (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+                            "lhu", "$rd, ${imm12}(${rs1})", []>;
+
+let mayLoad = 1, mayStore = 0 in
 def RiscvToyLW : RiscvToyI<0b010, 0b0000011,
                            (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
                            "lw", "$rd, ${imm12}(${rs1})", []>;
+
+let mayLoad = 0, mayStore = 1 in
+def RiscvToySB : RiscvToyS<0b000, 0b0100011,
+                           (outs), (ins GPR:$rs2, GPR:$rs1, simm12:$imm12),
+                           "sb", "$rs2, ${imm12}(${rs1})", []>;
+
+let mayLoad = 0, mayStore = 1 in
+def RiscvToySH : RiscvToyS<0b001, 0b0100011,
+                           (outs), (ins GPR:$rs2, GPR:$rs1, simm12:$imm12),
+                           "sh", "$rs2, ${imm12}(${rs1})", []>;
 
 let mayLoad = 0, mayStore = 1 in
 def RiscvToySW : RiscvToyS<0b010, 0b0100011,
@@ -253,6 +283,34 @@ def : Pat<(store GPR:$rs2, (add AddrFI:$rs1, immSExt12:$imm12)),
 def : Pat<(store GPR:$rs2, GPR:$rs1), (RiscvToySW GPR:$rs2, GPR:$rs1, 0)>;
 def : Pat<(store GPR:$rs2, (add GPR:$rs1, immSExt12:$imm12)),
           (RiscvToySW GPR:$rs2, GPR:$rs1, immSExt12:$imm12)>;
+
+multiclass RiscvToyLdPat<PatFrag LoadOp, Instruction Inst> {
+  def : Pat<(LoadOp GPR:$rs1), (Inst GPR:$rs1, 0)>;
+  def : Pat<(LoadOp AddrFI:$rs1), (Inst AddrFI:$rs1, 0)>;
+  def : Pat<(LoadOp (add GPR:$rs1, immSExt12:$imm12)),
+            (Inst GPR:$rs1, immSExt12:$imm12)>;
+  def : Pat<(LoadOp (add AddrFI:$rs1, immSExt12:$imm12)),
+            (Inst AddrFI:$rs1, immSExt12:$imm12)>;
+}
+
+multiclass RiscvToyStPat<PatFrag StoreOp, Instruction Inst> {
+  def : Pat<(StoreOp GPR:$rs2, GPR:$rs1), (Inst GPR:$rs2, GPR:$rs1, 0)>;
+  def : Pat<(StoreOp GPR:$rs2, AddrFI:$rs1),
+            (Inst GPR:$rs2, AddrFI:$rs1, 0)>;
+  def : Pat<(StoreOp GPR:$rs2, (add GPR:$rs1, immSExt12:$imm12)),
+            (Inst GPR:$rs2, GPR:$rs1, immSExt12:$imm12)>;
+  def : Pat<(StoreOp GPR:$rs2, (add AddrFI:$rs1, immSExt12:$imm12)),
+            (Inst GPR:$rs2, AddrFI:$rs1, immSExt12:$imm12)>;
+}
+
+defm : RiscvToyLdPat<sextloadi8, RiscvToyLB>;
+defm : RiscvToyLdPat<extloadi8, RiscvToyLB>;
+defm : RiscvToyLdPat<zextloadi8, RiscvToyLBU>;
+defm : RiscvToyLdPat<sextloadi16, RiscvToyLH>;
+defm : RiscvToyLdPat<extloadi16, RiscvToyLH>;
+defm : RiscvToyLdPat<zextloadi16, RiscvToyLHU>;
+defm : RiscvToyStPat<truncstorei8, RiscvToySB>;
+defm : RiscvToyStPat<truncstorei16, RiscvToySH>;
 
 // Keep the internal instruction real (jalr x0, 0(ra)), but print the usual
 // assembly mnemonic "ret".

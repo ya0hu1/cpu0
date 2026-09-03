@@ -314,7 +314,9 @@ bool RiscvToyAsmParser::parseMemoryOperand(OperandVector &Operands) {
 
 bool RiscvToyAsmParser::parseOperand(OperandVector &Operands,
                                      StringRef Mnemonic) {
-  if ((Mnemonic == "lw" || Mnemonic == "sw" || Mnemonic == "jalr") &&
+  if ((Mnemonic == "lb" || Mnemonic == "lbu" || Mnemonic == "lh" ||
+       Mnemonic == "lhu" || Mnemonic == "lw" || Mnemonic == "sb" ||
+       Mnemonic == "sh" || Mnemonic == "sw" || Mnemonic == "jalr") &&
       Operands.size() > 1)
     return parseMemoryOperand(Operands);
 
@@ -565,7 +567,9 @@ bool RiscvToyAsmParser::MatchAndEmitInstruction(
     return emit(Inst);
   }
 
-  if (Mnemonic == "lw" || Mnemonic == "sw") {
+  if (Mnemonic == "lb" || Mnemonic == "lbu" || Mnemonic == "lh" ||
+      Mnemonic == "lhu" || Mnemonic == "lw" || Mnemonic == "sb" ||
+      Mnemonic == "sh" || Mnemonic == "sw") {
     const MCExpr *Offset;
     unsigned BaseReg;
     if (reg(1, Rd))
@@ -574,17 +578,26 @@ bool RiscvToyAsmParser::MatchAndEmitInstruction(
       return fail("memory operand expected");
     if (requireImmediateRange(Offset, IDLoc, -2048, 2047))
       return true;
-    if (Mnemonic == "lw") {
+    if (Mnemonic == "lb")
+      Inst.setOpcode(RiscvToy::RiscvToyLB);
+    else if (Mnemonic == "lbu")
+      Inst.setOpcode(RiscvToy::RiscvToyLBU);
+    else if (Mnemonic == "lh")
+      Inst.setOpcode(RiscvToy::RiscvToyLH);
+    else if (Mnemonic == "lhu")
+      Inst.setOpcode(RiscvToy::RiscvToyLHU);
+    else if (Mnemonic == "lw")
       Inst.setOpcode(RiscvToy::RiscvToyLW);
-      Inst.addOperand(MCOperand::createReg(Rd));
-      Inst.addOperand(MCOperand::createReg(BaseReg));
-      Inst.addOperand(getMCOperand(Offset));
-    } else {
+    else if (Mnemonic == "sb")
+      Inst.setOpcode(RiscvToy::RiscvToySB);
+    else if (Mnemonic == "sh")
+      Inst.setOpcode(RiscvToy::RiscvToySH);
+    else
       Inst.setOpcode(RiscvToy::RiscvToySW);
-      Inst.addOperand(MCOperand::createReg(Rd));
-      Inst.addOperand(MCOperand::createReg(BaseReg));
-      Inst.addOperand(getMCOperand(Offset));
-    }
+
+    Inst.addOperand(MCOperand::createReg(Rd));
+    Inst.addOperand(MCOperand::createReg(BaseReg));
+    Inst.addOperand(getMCOperand(Offset));
     return emit(Inst);
   }
 

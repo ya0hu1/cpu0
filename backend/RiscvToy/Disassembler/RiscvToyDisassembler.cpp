@@ -158,9 +158,29 @@ static DecodeStatus decodeShiftImmediate(MCInst &Inst, uint32_t Insn) {
 static DecodeStatus decodeLoad(MCInst &Inst, uint32_t Insn) {
   unsigned Rd = (Insn >> 7) & 0x1f;
   unsigned Rs1 = (Insn >> 15) & 0x1f;
+  unsigned Funct3 = (Insn >> 12) & 0x7;
   int64_t Imm = signExtend(Insn >> 20, 12);
 
-  Inst.setOpcode(RiscvToy::RiscvToyLW);
+  switch (Funct3) {
+  default:
+    return MCDisassembler::Fail;
+  case 0:
+    Inst.setOpcode(RiscvToy::RiscvToyLB);
+    break;
+  case 1:
+    Inst.setOpcode(RiscvToy::RiscvToyLH);
+    break;
+  case 2:
+    Inst.setOpcode(RiscvToy::RiscvToyLW);
+    break;
+  case 4:
+    Inst.setOpcode(RiscvToy::RiscvToyLBU);
+    break;
+  case 5:
+    Inst.setOpcode(RiscvToy::RiscvToyLHU);
+    break;
+  }
+
   if (addRegister(Inst, Rd) == MCDisassembler::Fail ||
       addRegister(Inst, Rs1) == MCDisassembler::Fail)
     return MCDisassembler::Fail;
@@ -182,10 +202,24 @@ static DecodeStatus decodeLUI(MCInst &Inst, uint32_t Insn) {
 static DecodeStatus decodeStore(MCInst &Inst, uint32_t Insn) {
   unsigned Rs1 = (Insn >> 15) & 0x1f;
   unsigned Rs2 = (Insn >> 20) & 0x1f;
+  unsigned Funct3 = (Insn >> 12) & 0x7;
   int64_t Imm =
       signExtend(((Insn >> 25) & 0x7f) << 5 | ((Insn >> 7) & 0x1f), 12);
 
-  Inst.setOpcode(RiscvToy::RiscvToySW);
+  switch (Funct3) {
+  default:
+    return MCDisassembler::Fail;
+  case 0:
+    Inst.setOpcode(RiscvToy::RiscvToySB);
+    break;
+  case 1:
+    Inst.setOpcode(RiscvToy::RiscvToySH);
+    break;
+  case 2:
+    Inst.setOpcode(RiscvToy::RiscvToySW);
+    break;
+  }
+
   if (addRegister(Inst, Rs2) == MCDisassembler::Fail ||
       addRegister(Inst, Rs1) == MCDisassembler::Fail)
     return MCDisassembler::Fail;
@@ -284,14 +318,10 @@ DecodeStatus RiscvToyDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
                  : decodeIType(Instr, Insn);
     break;
   case 0x03: // LOAD
-    Status = ((Insn >> 12) & 0x7) == 0x2
-                 ? decodeLoad(Instr, Insn)
-                 : MCDisassembler::Fail;
+    Status = decodeLoad(Instr, Insn);
     break;
   case 0x23: // STORE
-    Status = ((Insn >> 12) & 0x7) == 0x2
-                 ? decodeStore(Instr, Insn)
-                 : MCDisassembler::Fail;
+    Status = decodeStore(Instr, Insn);
     break;
   case 0x67: // JALR
     Status = ((Insn >> 12) & 0x7) == 0x0

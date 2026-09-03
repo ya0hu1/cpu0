@@ -36,6 +36,7 @@ for_cpu0/
     09-asm-parser.md
     10-large-constants.md
     11-shifts.md
+    12-byte-half-loads-stores.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -294,11 +295,23 @@ MCTargetDesc/
 3. `slli/srli/srai` 的特殊 funct7/shamt 编码可用；
 4. parser、object、disassembler 都覆盖 6 条移位指令。
 
+## 阶段 12：字节与半字访存
+
+已完成，说明见
+[riscv/12-byte-half-loads-stores.md](riscv/12-byte-half-loads-stores.md)。
+
+现在：
+
+1. `lb/lbu/lh/lhu` 窄 load 可用；
+2. `sb/sh` 窄 store 可用；
+3. signed/unsigned 扩展由 SelectionDAG 自动选择；
+4. parser、object、disassembler 都已同步。
+
 后续候选：
 
 1. 全局寻址：加入 `auipc`、`%pcrel_hi/%pcrel_lo`、`la` 等；
-2. 补齐常用 RV32I 指令，如 `lb/lh/lbu/lhu/sb/sh`；
-3. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
+2. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列；
+3. 补齐剩余 RV32I 指令，例如 `fence`、`ecall/ebreak` 和 CSR。
 
 每个阶段仍然先加一个能被 lit 自动回归的 `.ll`/`.s` 测试，再做提交。
 
