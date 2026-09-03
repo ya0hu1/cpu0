@@ -18,3 +18,4 @@
 - [riscv/07-mc-object.md](riscv/07-mc-object.md)：RiscvToy Stage 7 目标文件、机器码编码与重定位
 - [riscv/08-disassembler.md](riscv/08-disassembler.md)：RiscvToy Stage 8 反汇编器
 - [riscv/09-asm-parser.md](riscv/09-asm-parser.md)：RiscvToy Stage 9 汇编器 AsmParser
+- [riscv/10-large-constants.md](riscv/10-large-constants.md)：RiscvToy Stage 10 32 位常量 materialization

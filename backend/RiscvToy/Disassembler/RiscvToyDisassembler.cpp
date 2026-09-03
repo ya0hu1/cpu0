@@ -133,6 +133,17 @@ static DecodeStatus decodeLoad(MCInst &Inst, uint32_t Insn) {
   return MCDisassembler::Success;
 }
 
+static DecodeStatus decodeLUI(MCInst &Inst, uint32_t Insn) {
+  unsigned Rd = (Insn >> 7) & 0x1f;
+  int64_t Imm = Insn >> 12;
+
+  Inst.setOpcode(RiscvToy::RiscvToyLUI);
+  if (addRegister(Inst, Rd) == MCDisassembler::Fail)
+    return MCDisassembler::Fail;
+  Inst.addOperand(MCOperand::createImm(Imm));
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus decodeStore(MCInst &Inst, uint32_t Insn) {
   unsigned Rs1 = (Insn >> 15) & 0x1f;
   unsigned Rs2 = (Insn >> 20) & 0x1f;
@@ -225,6 +236,9 @@ DecodeStatus RiscvToyDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
   DecodeStatus Status = MCDisassembler::Fail;
 
   switch (Opcode) {
+  case 0x37: // LUI
+    Status = decodeLUI(Instr, Insn);
+    break;
   case 0x33: // OP: integer register-register
     Status = decodeRType(Instr, Insn);
     break;

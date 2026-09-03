@@ -20,6 +20,9 @@ include "RiscvToyInstrFormats.td"
 def simm12 : Operand<i32> {
   let EncoderMethod = "getImmOpValue";
 }
+def uimm20 : Operand<i32> {
+  let EncoderMethod = "getImmOpValue";
+}
 def call_symbol : Operand<i32>;
 def brtarget : Operand<OtherVT> {
   let PrintMethod = "printOperand";
@@ -27,6 +30,25 @@ def brtarget : Operand<OtherVT> {
 }
 
 def immSExt12 : ImmLeaf<i32, [{ return isInt<12>(Imm); }]>;
+
+// Large constants are split into a 20-bit LUI field and a signed 12-bit ADDI
+// field. The LUI value is rounded up when the low 12 bits are negative.
+def immNonSExt12 : ImmLeaf<i32, [{ return !isInt<12>(Imm); }]>;
+
+def LO12Sext : SDNodeXForm<imm, [{
+  int64_t Imm = N->getSExtValue();
+  int64_t Lo = Imm & 0xfff;
+  if (Lo >= 0x800)
+    Lo -= 0x1000;
+  return CurDAG->getTargetConstant(Lo, SDLoc(N), N->getValueType(0));
+}]>;
+
+def HI20 : SDNodeXForm<imm, [{
+  int64_t Imm = N->getSExtValue();
+  int64_t Hi = (Imm + 0x800) >> 12;
+  Hi &= 0xfffff;
+  return CurDAG->getTargetConstant(Hi, SDLoc(N), N->getValueType(0));
+}]>;
 
 // A frame index is not a normal register/address in SelectionDAG, so memory
 // patterns use this complex pattern and lower it to a TargetFrameIndex.
@@ -131,6 +153,10 @@ def RiscvToyJAL : RiscvToyJ<0b1101111,
                             (outs GPR:$rd), (ins brtarget:$imm20),
                             "jal", "$rd, $imm20", []>;
 
+def RiscvToyLUI : RiscvToyU<0b0110111,
+                            (outs GPR:$rd), (ins uimm20:$imm20),
+                            "lui", "$rd, $imm20", []>;
+
 let isBranch = 1, isTerminator = 1 in {
 def RiscvToyBEQ : RiscvToyB<0b000, 0b1100011,
                             (outs), (ins GPR:$rs1, GPR:$rs2,
@@ -226,6 +252,9 @@ def : Pat<(setule GPR:$rs1, GPR:$rs2),
 // signed 12-bit range will require LUI/AUIPC in a later MC/materialization
 // stage.
 def : Pat<(immSExt12:$imm), (RiscvToyADDI X0, immSExt12:$imm)>;
+def : Pat<(immNonSExt12:$imm),
+          (RiscvToyADDI (RiscvToyLUI (HI20 imm:$imm)),
+                        (LO12Sext imm:$imm))>;
 
 // Branch directly on an icmp result. Unsupported conditions are lowered by
 // swapping rs1/rs2.

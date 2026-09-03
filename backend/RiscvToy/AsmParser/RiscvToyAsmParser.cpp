@@ -485,6 +485,17 @@ bool RiscvToyAsmParser::MatchAndEmitInstruction(
     return emit(Inst);
   }
 
+  if (Mnemonic == "lui") {
+    if (reg(1, Rd) || imm(2, ImmExpr))
+      return fail("register and 20-bit immediate expected");
+    if (requireImmediateRange(ImmExpr, IDLoc, 0, 0xfffff))
+      return true;
+    Inst.setOpcode(RiscvToy::RiscvToyLUI);
+    Inst.addOperand(MCOperand::createReg(Rd));
+    Inst.addOperand(getMCOperand(ImmExpr));
+    return emit(Inst);
+  }
+
   if (Mnemonic == "add" || Mnemonic == "sub" || Mnemonic == "and" ||
       Mnemonic == "or" || Mnemonic == "xor" || Mnemonic == "slt" ||
       Mnemonic == "sltu") {

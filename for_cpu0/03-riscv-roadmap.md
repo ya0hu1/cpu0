@@ -34,6 +34,7 @@ for_cpu0/
     07-mc-object.md
     08-disassembler.md
     09-asm-parser.md
+    10-large-constants.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -268,10 +269,23 @@ MCTargetDesc/
 4. `ret/call/j` pseudo 与 CodeGen/MC 层共用同一套语法；
 5. `llc -filetype=asm` 的输出可以重新汇编成 `.o`。
 
+## 阶段 10：32 位常量 materialization
+
+已完成，说明见
+[riscv/10-large-constants.md](riscv/10-large-constants.md)。
+
+现在：
+
+1. 超出 12 位的常量用 `lui + addi` 合成；
+2. 小常量仍走单条 `addi x0`；
+3. `lui` 已同步支持 object 编码、AsmParser 和 Disassembler；
+4. 正数、负数和 `-4096` 边界都有 lit 测试。
+
 后续候选：
 
-1. 大常量与全局寻址：加入 `lui/auipc`、`lb/lh/lbu/lhu` 等常用 RV32I 指令；
-2. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
+1. 全局寻址：加入 `auipc`、`%pcrel_hi/%pcrel_lo`、`la` 等；
+2. 补齐常用 RV32I 指令，如 `slli/srli/srai`、`lb/lh/lbu/lhu/sb/sh`；
+3. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
 
 每个阶段仍然先加一个能被 lit 自动回归的 `.ll`/`.s` 测试，再做提交。
 
