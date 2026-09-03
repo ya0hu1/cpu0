@@ -10,3 +10,4 @@
 - [04-llvm-overlay.md](04-llvm-overlay.md)：`llvm-overlay` 中每个文件的用途
 - [05-cpu0-baseline-result.md](05-cpu0-baseline-result.md)：Cpu0 基线构建与验证结果
 - [riscv/01-minimal-target.md](riscv/01-minimal-target.md)：RiscvToy Stage 1 最小 target 注册
+- [riscv/02-registers-and-callingconv.md](riscv/02-registers-and-callingconv.md)：RiscvToy 寄存器模型与调用约定表

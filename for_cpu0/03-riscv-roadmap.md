@@ -79,6 +79,9 @@ build/bin/llc --version
 
 ## 阶段 2：寄存器模型
 
+已完成寄存器表和调用约定表，说明见
+[riscv/02-registers-and-callingconv.md](riscv/02-registers-and-callingconv.md)。
+
 定义 RV32I 常用整数寄存器：
 
 ```text
