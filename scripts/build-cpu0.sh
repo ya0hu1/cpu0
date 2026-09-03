@@ -21,7 +21,6 @@ cmake -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_ENABLE_PROJECTS=clang \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
-  -DLLVM_TARGETS_TO_BUILD=Cpu0 \
-  -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=Cpu0
+  -DLLVM_TARGETS_TO_BUILD=Cpu0
 
 ninja -C "${BUILD_DIR}" llc opt llvm-as llvm-dis clang
