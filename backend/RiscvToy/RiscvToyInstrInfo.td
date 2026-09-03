@@ -23,6 +23,10 @@ def simm12 : Operand<i32> {
 def uimm20 : Operand<i32> {
   let EncoderMethod = "getImmOpValue";
 }
+def uimm5 : Operand<i32>,
+            ImmLeaf<i32, [{ return isUInt<5>(Imm); }]> {
+  let EncoderMethod = "getImmOpValue";
+}
 def call_symbol : Operand<i32>;
 def brtarget : Operand<OtherVT> {
   let PrintMethod = "printOperand";
@@ -142,6 +146,42 @@ def RiscvToySLT : RiscvToyR<0b0000000, 0b010, 0b0110011,
 def RiscvToySLTU : RiscvToyR<0b0000000, 0b011, 0b0110011,
                              (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
                              "sltu", "$rd, $rs1, $rs2", []>;
+
+def RiscvToySLL : RiscvToyR<0b0000000, 0b001, 0b0110011,
+                            (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
+                            "sll", "$rd, $rs1, $rs2",
+                            [(set GPR:$rd, (shl GPR:$rs1, GPR:$rs2))]>;
+
+def RiscvToySRL : RiscvToyR<0b0000000, 0b101, 0b0110011,
+                            (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
+                            "srl", "$rd, $rs1, $rs2",
+                            [(set GPR:$rd, (srl GPR:$rs1, GPR:$rs2))]>;
+
+def RiscvToySRA : RiscvToyR<0b0100000, 0b101, 0b0110011,
+                            (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
+                            "sra", "$rd, $rs1, $rs2",
+                            [(set GPR:$rd, (sra GPR:$rs1, GPR:$rs2))]>;
+
+def RiscvToySLLI : RiscvToyShiftI<0b0000000, 0b001, 0b0010011,
+                                  (outs GPR:$rd),
+                                  (ins GPR:$rs1, uimm5:$shamt),
+                                  "slli", "$rd, $rs1, $shamt",
+                                  [(set GPR:$rd,
+                                    (shl GPR:$rs1, uimm5:$shamt))]>;
+
+def RiscvToySRLI : RiscvToyShiftI<0b0000000, 0b101, 0b0010011,
+                                  (outs GPR:$rd),
+                                  (ins GPR:$rs1, uimm5:$shamt),
+                                  "srli", "$rd, $rs1, $shamt",
+                                  [(set GPR:$rd,
+                                    (srl GPR:$rs1, uimm5:$shamt))]>;
+
+def RiscvToySRAI : RiscvToyShiftI<0b0100000, 0b101, 0b0010011,
+                                  (outs GPR:$rd),
+                                  (ins GPR:$rs1, uimm5:$shamt),
+                                  "srai", "$rd, $rs1, $shamt",
+                                  [(set GPR:$rd,
+                                    (sra GPR:$rs1, uimm5:$shamt))]>;
 
 def RiscvToyJALR : RiscvToyI<0b000, 0b1100111,
                              (outs GPRFull:$rd),

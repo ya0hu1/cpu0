@@ -35,6 +35,7 @@ for_cpu0/
     08-disassembler.md
     09-asm-parser.md
     10-large-constants.md
+    11-shifts.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -281,10 +282,22 @@ MCTargetDesc/
 3. `lui` 已同步支持 object 编码、AsmParser 和 Disassembler；
 4. 正数、负数和 `-4096` 边界都有 lit 测试。
 
+## 阶段 11：移位指令
+
+已完成，说明见
+[riscv/11-shifts.md](riscv/11-shifts.md)。
+
+现在：
+
+1. `shl/lshr/ashr` 支持立即数移位；
+2. `shl/lshr/ashr` 支持变量移位；
+3. `slli/srli/srai` 的特殊 funct7/shamt 编码可用；
+4. parser、object、disassembler 都覆盖 6 条移位指令。
+
 后续候选：
 
 1. 全局寻址：加入 `auipc`、`%pcrel_hi/%pcrel_lo`、`la` 等；
-2. 补齐常用 RV32I 指令，如 `slli/srli/srai`、`lb/lh/lbu/lhu/sb/sh`；
+2. 补齐常用 RV32I 指令，如 `lb/lh/lbu/lhu/sb/sh`；
 3. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
 
 每个阶段仍然先加一个能被 lit 自动回归的 `.ll`/`.s` 测试，再做提交。

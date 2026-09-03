@@ -19,3 +19,4 @@
 - [riscv/08-disassembler.md](riscv/08-disassembler.md)：RiscvToy Stage 8 反汇编器
 - [riscv/09-asm-parser.md](riscv/09-asm-parser.md)：RiscvToy Stage 9 汇编器 AsmParser
 - [riscv/10-large-constants.md](riscv/10-large-constants.md)：RiscvToy Stage 10 32 位常量 materialization
+- [riscv/11-shifts.md](riscv/11-shifts.md)：RiscvToy Stage 11 移位指令

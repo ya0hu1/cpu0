@@ -498,7 +498,8 @@ bool RiscvToyAsmParser::MatchAndEmitInstruction(
 
   if (Mnemonic == "add" || Mnemonic == "sub" || Mnemonic == "and" ||
       Mnemonic == "or" || Mnemonic == "xor" || Mnemonic == "slt" ||
-      Mnemonic == "sltu") {
+      Mnemonic == "sltu" || Mnemonic == "sll" || Mnemonic == "srl" ||
+      Mnemonic == "sra") {
     if (reg(1, Rd) || reg(2, Rs1) || reg(3, Rs2))
       return fail("three register operands expected");
     if (Mnemonic == "add")
@@ -513,11 +514,34 @@ bool RiscvToyAsmParser::MatchAndEmitInstruction(
       Inst.setOpcode(RiscvToy::RiscvToyXOR);
     else if (Mnemonic == "slt")
       Inst.setOpcode(RiscvToy::RiscvToySLT);
-    else
+    else if (Mnemonic == "sltu")
       Inst.setOpcode(RiscvToy::RiscvToySLTU);
+    else if (Mnemonic == "sll")
+      Inst.setOpcode(RiscvToy::RiscvToySLL);
+    else if (Mnemonic == "srl")
+      Inst.setOpcode(RiscvToy::RiscvToySRL);
+    else
+      Inst.setOpcode(RiscvToy::RiscvToySRA);
     Inst.addOperand(MCOperand::createReg(Rd));
     Inst.addOperand(MCOperand::createReg(Rs1));
     Inst.addOperand(MCOperand::createReg(Rs2));
+    return emit(Inst);
+  }
+
+  if (Mnemonic == "slli" || Mnemonic == "srli" || Mnemonic == "srai") {
+    if (reg(1, Rd) || reg(2, Rs1) || imm(3, ImmExpr))
+      return fail("register, register, shift amount expected");
+    if (requireImmediateRange(ImmExpr, IDLoc, 0, 31))
+      return true;
+    if (Mnemonic == "slli")
+      Inst.setOpcode(RiscvToy::RiscvToySLLI);
+    else if (Mnemonic == "srli")
+      Inst.setOpcode(RiscvToy::RiscvToySRLI);
+    else
+      Inst.setOpcode(RiscvToy::RiscvToySRAI);
+    Inst.addOperand(MCOperand::createReg(Rd));
+    Inst.addOperand(MCOperand::createReg(Rs1));
+    Inst.addOperand(getMCOperand(ImmExpr));
     return emit(Inst);
   }
 

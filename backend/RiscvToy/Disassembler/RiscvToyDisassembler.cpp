@@ -75,6 +75,13 @@ static DecodeStatus decodeRType(MCInst &Inst, uint32_t Insn) {
   case 4:
     Inst.setOpcode(RiscvToy::RiscvToyXOR);
     break;
+  case 1:
+    Inst.setOpcode(RiscvToy::RiscvToySLL);
+    break;
+  case 5:
+    Inst.setOpcode((Insn & (1U << 30)) ? RiscvToy::RiscvToySRA
+                                       : RiscvToy::RiscvToySRL);
+    break;
   case 6:
     Inst.setOpcode(RiscvToy::RiscvToyOR);
     break;
@@ -117,6 +124,34 @@ static DecodeStatus decodeIType(MCInst &Inst, uint32_t Insn) {
       addRegister(Inst, Rs1) == MCDisassembler::Fail)
     return MCDisassembler::Fail;
   Inst.addOperand(MCOperand::createImm(Imm));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus decodeShiftImmediate(MCInst &Inst, uint32_t Insn) {
+  unsigned Rd = (Insn >> 7) & 0x1f;
+  unsigned Rs1 = (Insn >> 15) & 0x1f;
+  unsigned Shamt = (Insn >> 20) & 0x1f;
+  unsigned Funct3 = (Insn >> 12) & 0x7;
+  bool IsArithmetic = Insn & (1U << 30);
+
+  switch (Funct3) {
+  default:
+    return MCDisassembler::Fail;
+  case 1:
+    if (IsArithmetic)
+      return MCDisassembler::Fail;
+    Inst.setOpcode(RiscvToy::RiscvToySLLI);
+    break;
+  case 5:
+    Inst.setOpcode(IsArithmetic ? RiscvToy::RiscvToySRAI
+                                : RiscvToy::RiscvToySRLI);
+    break;
+  }
+
+  if (addRegister(Inst, Rd) == MCDisassembler::Fail ||
+      addRegister(Inst, Rs1) == MCDisassembler::Fail)
+    return MCDisassembler::Fail;
+  Inst.addOperand(MCOperand::createImm(Shamt));
   return MCDisassembler::Success;
 }
 
@@ -243,7 +278,10 @@ DecodeStatus RiscvToyDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
     Status = decodeRType(Instr, Insn);
     break;
   case 0x13: // OP-IMM: integer register-immediate
-    Status = decodeIType(Instr, Insn);
+    Status = (((Insn >> 12) & 0x7) == 0x1 ||
+              ((Insn >> 12) & 0x7) == 0x5)
+                 ? decodeShiftImmediate(Instr, Insn)
+                 : decodeIType(Instr, Insn);
     break;
   case 0x03: // LOAD
     Status = ((Insn >> 12) & 0x7) == 0x2

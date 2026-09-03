@@ -64,6 +64,24 @@ class RiscvToyI<bits<3> funct3, bits<7> opcode,
   let Inst{6-0} = opcode;
 }
 
+// Shift-immediate is an I-type encoding whose upper seven bits carry funct7
+// and whose lower five immediate bits carry shamt[4:0].
+class RiscvToyShiftI<bits<7> funct7, bits<3> funct3, bits<7> opcode,
+                     dag outs, dag ins, string opcodestr, string argstr,
+                     list<dag> pattern>
+    : RiscvToyInst<outs, ins, opcodestr # "\t" # argstr, pattern> {
+  bits<5> shamt;
+  bits<5> rs1;
+  bits<5> rd;
+
+  let Inst{31-25} = funct7;
+  let Inst{24-20} = shamt;
+  let Inst{19-15} = rs1;
+  let Inst{14-12} = funct3;
+  let Inst{11-7} = rd;
+  let Inst{6-0} = opcode;
+}
+
 // S-type: imm12[11:5] | rs2 | rs1 | funct3 | imm12[4:0] | opcode
 class RiscvToyS<bits<3> funct3, bits<7> opcode,
                 dag outs, dag ins, string opcodestr, string argstr,
