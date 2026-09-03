@@ -25,13 +25,16 @@ static MCOperand lowerSymbolOperand(const MachineOperand &MO,
   const MCSymbol *Symbol;
   if (MO.getType() == MachineOperand::MO_GlobalAddress)
     Symbol = AP.getSymbol(MO.getGlobal());
+  else if (MO.getType() == MachineOperand::MO_MachineBasicBlock)
+    Symbol = MO.getMBB()->getSymbol();
   else if (MO.getType() == MachineOperand::MO_ExternalSymbol)
     Symbol = AP.GetExternalSymbolSymbol(MO.getSymbolName());
   else
     llvm_unreachable("Unknown symbolic operand");
 
   const MCExpr *Expr = MCSymbolRefExpr::create(Symbol, AP.OutContext);
-  if (MO.getOffset())
+  if (MO.getType() != MachineOperand::MO_MachineBasicBlock &&
+      MO.getOffset())
     Expr = MCBinaryExpr::createAdd(
         Expr, MCConstantExpr::create(MO.getOffset(), AP.OutContext),
         AP.OutContext);
@@ -46,6 +49,7 @@ static MCOperand lowerMachineOperand(const MachineOperand &MO,
   case MachineOperand::MO_Immediate:
     return MCOperand::createImm(MO.getImm());
   case MachineOperand::MO_GlobalAddress:
+  case MachineOperand::MO_MachineBasicBlock:
   case MachineOperand::MO_ExternalSymbol:
     return lowerSymbolOperand(MO, AP);
   default:

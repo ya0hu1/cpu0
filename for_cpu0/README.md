@@ -14,3 +14,4 @@
 - [riscv/03-instruction-encoding.md](riscv/03-instruction-encoding.md)：RiscvToy Stage 3 RV32I 指令编码表
 - [riscv/04-first-codegen.md](riscv/04-first-codegen.md)：RiscvToy Stage 4 首个 RISC-V 汇编输出
 - [riscv/05-function-call-frame.md](riscv/05-function-call-frame.md)：RiscvToy Stage 5 函数调用与栈帧
+- [riscv/06-branches-select.md](riscv/06-branches-select.md)：RiscvToy Stage 6 分支、比较和条件选择

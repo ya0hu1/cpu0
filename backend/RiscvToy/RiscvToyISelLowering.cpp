@@ -9,11 +9,48 @@
 #include "RiscvToyISelLowering.h"
 #include "RiscvToySubtarget.h"
 #include "llvm/CodeGen/CallingConvLower.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
+#include "llvm/CodeGen/TargetInstrInfo.h"
+#include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/Support/ErrorHandling.h"
 
 using namespace llvm;
+
+static void normaliseSetCC(SDValue &LHS, SDValue &RHS, ISD::CondCode &CC) {
+  switch (CC) {
+  default:
+    break;
+  case ISD::SETGT:
+  case ISD::SETLE:
+  case ISD::SETUGT:
+  case ISD::SETULE:
+    CC = ISD::getSetCCSwappedOperands(CC);
+    std::swap(LHS, RHS);
+    break;
+  }
+}
+
+static unsigned getBranchOpcodeForIntCondCode(ISD::CondCode CC) {
+  switch (CC) {
+  default:
+    llvm_unreachable("Unsupported integer condition code");
+  case ISD::SETEQ:
+    return RiscvToy::RiscvToyBEQ;
+  case ISD::SETNE:
+    return RiscvToy::RiscvToyBNE;
+  case ISD::SETLT:
+    return RiscvToy::RiscvToyBLT;
+  case ISD::SETGE:
+    return RiscvToy::RiscvToyBGE;
+  case ISD::SETULT:
+    return RiscvToy::RiscvToyBLTU;
+  case ISD::SETUGE:
+    return RiscvToy::RiscvToyBGEU;
+  }
+}
 
 RiscvToyTargetLowering::RiscvToyTargetLowering(const TargetMachine &TM,
                                                const RiscvToySubtarget &STI)
@@ -25,7 +62,7 @@ RiscvToyTargetLowering::RiscvToyTargetLowering(const TargetMachine &TM,
   setBooleanContents(ZeroOrOneBooleanContent);
 
   setOperationAction(ISD::BR_CC, MVT::i32, Expand);
-  setOperationAction(ISD::SELECT, MVT::i32, Expand);
+  setOperationAction(ISD::SELECT, MVT::i32, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i32, Expand);
   setOperationAction(ISD::BR_JT, MVT::Other, Expand);
 }
@@ -34,6 +71,8 @@ const char *RiscvToyTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   case RiscvToyISD::CALL:
     return "RiscvToyISD::CALL";
+  case RiscvToyISD::SELECT_CC:
+    return "RiscvToyISD::SELECT_CC";
   case RiscvToyISD::RET_FLAG:
     return "RiscvToyISD::RET_FLAG";
   default:
@@ -43,7 +82,80 @@ const char *RiscvToyTargetLowering::getTargetNodeName(unsigned Opcode) const {
 
 SDValue RiscvToyTargetLowering::LowerOperation(SDValue Op,
                                                SelectionDAG &DAG) const {
-  llvm_unreachable("RiscvToy custom lowering is not implemented yet");
+  if (Op.getOpcode() != ISD::SELECT)
+    llvm_unreachable("Unexpected custom lowering");
+
+  SDLoc DL(Op);
+  SDValue CondV = Op.getOperand(0);
+  SDValue TrueV = Op.getOperand(1);
+  SDValue FalseV = Op.getOperand(2);
+
+  if (CondV.getOpcode() == ISD::SETCC &&
+      CondV.getOperand(0).getValueType() == MVT::i32) {
+    SDValue LHS = CondV.getOperand(0);
+    SDValue RHS = CondV.getOperand(1);
+    ISD::CondCode CC = cast<CondCodeSDNode>(CondV.getOperand(2))->get();
+    normaliseSetCC(LHS, RHS, CC);
+
+    SDValue Ops[] = {LHS, RHS, DAG.getConstant(CC, DL, MVT::i32),
+                     TrueV, FalseV};
+    return DAG.getNode(RiscvToyISD::SELECT_CC, DL, Op.getValueType(), Ops);
+  }
+
+  // If the condition is already an i32 boolean value, test it against zero.
+  SDValue Zero = DAG.getConstant(0, DL, MVT::i32);
+  SDValue Ops[] = {CondV, Zero, DAG.getConstant(ISD::SETNE, DL, MVT::i32),
+                   TrueV, FalseV};
+  return DAG.getNode(RiscvToyISD::SELECT_CC, DL, Op.getValueType(), Ops);
+}
+
+MachineBasicBlock *RiscvToyTargetLowering::EmitInstrWithCustomInserter(
+    MachineInstr &MI, MachineBasicBlock *BB) const {
+  assert(MI.getOpcode() == RiscvToy::RiscvToySelectPseudo &&
+         "Unexpected custom inserter instruction");
+
+  const TargetInstrInfo &TII =
+      *BB->getParent()->getSubtarget().getInstrInfo();
+  const BasicBlock *LLVM_BB = BB->getBasicBlock();
+  DebugLoc DL = MI.getDebugLoc();
+  MachineFunction *MF = BB->getParent();
+
+  MachineBasicBlock *HeadMBB = BB;
+  MachineBasicBlock *IfFalseMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+  MachineBasicBlock *TailMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+
+  MachineFunction::iterator I = ++BB->getIterator();
+  MF->insert(I, IfFalseMBB);
+  MF->insert(I, TailMBB);
+
+  TailMBB->splice(TailMBB->begin(), HeadMBB,
+                  std::next(MachineBasicBlock::iterator(MI)), HeadMBB->end());
+  TailMBB->transferSuccessorsAndUpdatePHIs(HeadMBB);
+
+  HeadMBB->addSuccessor(IfFalseMBB);
+  HeadMBB->addSuccessor(TailMBB);
+  IfFalseMBB->addSuccessor(TailMBB);
+
+  Register LHS = MI.getOperand(1).getReg();
+  Register RHS = MI.getOperand(2).getReg();
+  ISD::CondCode CC = static_cast<ISD::CondCode>(MI.getOperand(3).getImm());
+
+  BuildMI(*HeadMBB, HeadMBB->end(), DL,
+          TII.get(getBranchOpcodeForIntCondCode(CC)))
+      .addReg(LHS)
+      .addReg(RHS)
+      .addMBB(TailMBB);
+
+  BuildMI(*TailMBB, TailMBB->begin(), DL, TII.get(TargetOpcode::PHI),
+          MI.getOperand(0).getReg())
+      .addReg(MI.getOperand(4).getReg())
+      .addMBB(HeadMBB)
+      .addReg(MI.getOperand(5).getReg())
+      .addMBB(IfFalseMBB);
+
+  MI.eraseFromParent();
+  MF->getProperties().reset(MachineFunctionProperties::Property::NoPHIs);
+  return TailMBB;
 }
 
 #include "RiscvToyGenCallingConv.inc"

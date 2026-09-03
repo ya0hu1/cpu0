@@ -109,3 +109,140 @@ void RiscvToyInstrInfo::loadRegFromStackSlot(
       .addImm(0)
       .addMemOperand(MMO);
 }
+
+static void parseCondBranch(MachineInstr &MI, MachineBasicBlock *&Target,
+                            SmallVectorImpl<MachineOperand> &Cond) {
+  assert(MI.getDesc().isConditionalBranch() && "Unknown conditional branch");
+  Target = MI.getOperand(2).getMBB();
+  Cond.push_back(MachineOperand::CreateImm(MI.getOpcode()));
+  Cond.push_back(MI.getOperand(0));
+  Cond.push_back(MI.getOperand(1));
+}
+
+static unsigned getOppositeBranchOpcode(unsigned Opcode) {
+  switch (Opcode) {
+  default:
+    llvm_unreachable("Unrecognized conditional branch");
+  case RiscvToy::RiscvToyBEQ:
+    return RiscvToy::RiscvToyBNE;
+  case RiscvToy::RiscvToyBNE:
+    return RiscvToy::RiscvToyBEQ;
+  case RiscvToy::RiscvToyBLT:
+    return RiscvToy::RiscvToyBGE;
+  case RiscvToy::RiscvToyBGE:
+    return RiscvToy::RiscvToyBLT;
+  case RiscvToy::RiscvToyBLTU:
+    return RiscvToy::RiscvToyBGEU;
+  case RiscvToy::RiscvToyBGEU:
+    return RiscvToy::RiscvToyBLTU;
+  }
+}
+
+bool RiscvToyInstrInfo::analyzeBranch(
+    MachineBasicBlock &MBB, MachineBasicBlock *&TBB, MachineBasicBlock *&FBB,
+    SmallVectorImpl<MachineOperand> &Cond, bool AllowModify) const {
+  TBB = FBB = nullptr;
+  Cond.clear();
+
+  MachineBasicBlock::iterator I = MBB.getLastNonDebugInstr();
+  if (I == MBB.end() || !isUnpredicatedTerminator(*I))
+    return false;
+
+  int NumTerminators = 0;
+  for (auto J = I.getReverse(); J != MBB.rend() && isUnpredicatedTerminator(*J);
+       ++J) {
+    NumTerminators++;
+  }
+
+  if (NumTerminators > 2)
+    return true;
+
+  // A single unconditional branch.
+  if (NumTerminators == 1 && I->getDesc().isUnconditionalBranch()) {
+    TBB = getBranchDestBlock(*I);
+    return false;
+  }
+
+  // A single conditional branch.
+  if (NumTerminators == 1 && I->getDesc().isConditionalBranch()) {
+    parseCondBranch(*I, TBB, Cond);
+    return false;
+  }
+
+  // A conditional branch followed by an unconditional branch.
+  MachineBasicBlock::iterator Prev = std::prev(I);
+  if (NumTerminators == 2 && Prev->getDesc().isConditionalBranch() &&
+      I->getDesc().isUnconditionalBranch()) {
+    parseCondBranch(*Prev, TBB, Cond);
+    FBB = getBranchDestBlock(*I);
+    return false;
+  }
+
+  return true;
+}
+
+unsigned RiscvToyInstrInfo::removeBranch(MachineBasicBlock &MBB,
+                                         int *BytesRemoved) const {
+  if (BytesRemoved)
+    *BytesRemoved = 0;
+
+  MachineBasicBlock::iterator I = MBB.getLastNonDebugInstr();
+  if (I == MBB.end() || !I->isBranch())
+    return 0;
+
+  I->eraseFromParent();
+  I = MBB.end();
+
+  unsigned Removed = 1;
+  if (I == MBB.begin())
+    return Removed;
+
+  --I;
+  if (!I->isBranch())
+    return Removed;
+
+  I->eraseFromParent();
+  return ++Removed;
+}
+
+unsigned RiscvToyInstrInfo::insertBranch(
+    MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
+    ArrayRef<MachineOperand> Cond, const DebugLoc &DL,
+    int *BytesAdded) const {
+  if (BytesAdded)
+    *BytesAdded = 0;
+
+  assert(TBB && "insertBranch must not be told to insert a fallthrough");
+
+  if (Cond.empty()) {
+    BuildMI(&MBB, DL, get(RiscvToy::PseudoBR)).addMBB(TBB);
+    return 1;
+  }
+
+  assert(Cond.size() == 3 && "RiscvToy branch conditions have 3 operands");
+  unsigned Opcode = Cond[0].getImm();
+  BuildMI(&MBB, DL, get(Opcode))
+      .add(Cond[1])
+      .add(Cond[2])
+      .addMBB(TBB);
+
+  if (!FBB)
+    return 1;
+
+  BuildMI(&MBB, DL, get(RiscvToy::PseudoBR)).addMBB(FBB);
+  return 2;
+}
+
+bool RiscvToyInstrInfo::reverseBranchCondition(
+    SmallVectorImpl<MachineOperand> &Cond) const {
+  assert(Cond.size() == 3 && "Invalid branch condition");
+  Cond[0].setImm(getOppositeBranchOpcode(Cond[0].getImm()));
+  return false;
+}
+
+MachineBasicBlock *RiscvToyInstrInfo::getBranchDestBlock(
+    const MachineInstr &MI) const {
+  assert(MI.getDesc().isBranch() && "Unexpected opcode");
+  unsigned NumOps = MI.getNumExplicitOperands();
+  return MI.getOperand(NumOps - 1).getMBB();
+}

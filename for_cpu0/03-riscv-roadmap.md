@@ -29,6 +29,7 @@ for_cpu0/
     03-instruction-encoding.md
     04-first-codegen.md
     05-function-call-frame.md
+    06-branches-select.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -198,22 +199,21 @@ MCTargetDesc/
 
 ## 阶段 6：分支、比较和条件选择
 
-LLVM IR 中的：
+已完成。中文说明见
+[riscv/06-branches-select.md](riscv/06-branches-select.md)。
 
-```llvm
-icmp
-br
-select
-```
+本阶段加入了：
 
-会下降成 DAG 比较节点。RV32I 没有复杂条件码，所以通常要映射到：
+- B 型条件分支；
+- `slt/sltu/slti/sltiu` 与 `xori`；
+- `setcc` 到 0/1 的 pattern；
+- `br` 与 `PseudoBR`；
+- `select` 通过 custom inserter 展开成分支和 PHI；
+- 小整数常量；
+- 基础 `analyzeBranch/insertBranch/removeBranch`。
 
-```text
-slti / sltiu / slt / sltu
-bne / beq / blt / bge / bltu / bgeu
-```
-
-这个阶段最容易暴露 legalizer 和 pattern 的理解问题。
+尚未支持大常量、switch、间接跳转和分支 fixup。这些和真实机器码编码一起进入
+Stage 7。
 
 ## 阶段 7：完整 MC 层
 

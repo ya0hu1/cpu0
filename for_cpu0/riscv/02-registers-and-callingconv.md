@@ -92,9 +92,9 @@ callee-saved 寄存器的次数。
 
 `X3` 和 `X4`（gp/tp）用于全局指针和线程指针，教学后端先保留。
 
-> Stage 5 修正：为了让 `sw/lw` 能保存 `x1/ra` 并显式引用 `sp`，`GPR` 类后来会加入
-> `x1,x2,x3,x4`；其中 `x2/x3/x4` 仍在 C++ 的 `getReservedRegs()` 中保留，
-> `x1` 与真实 RISC-V 后端一样参与 callee-saved 管理。
+> Stage 5/6 修正：为了让 `sw/lw` 能保存 `x1/ra`、显式引用 `sp`，并让分支能比较
+> `x0/zero`，`GPR` 类后来会加入 `x0,x1,x2,x3,x4`；其中 `x0/x2/x3/x4` 仍在 C++
+> 的 `getReservedRegs()` 中保留，`x1` 与真实 RISC-V 后端一样参与 callee-saved 管理。
 
 所以代码里提供了三个类：
 
