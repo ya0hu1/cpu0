@@ -439,6 +439,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
     .Cases("cpu0el", "cpu0allegrexel", Triple::cpu0el)
     .Case("r600", Triple::r600)
     .Case("amdgcn", Triple::amdgcn)
+    .Case("riscvtoy", Triple::riscv32)
     .Case("riscv32", Triple::riscv32)
     .Case("riscv64", Triple::riscv64)
     .Case("hexagon", Triple::hexagon)

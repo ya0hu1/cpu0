@@ -160,5 +160,5 @@ git clone https://github.com/ya0hu1/cpu0.git
 
 ## 6. 下一步
 
-Cpu0 基线已经可作为教学参照。下一步开始 `RiscvToy`，先做一个能被 `llc`
-识别的最小 target，再逐步加入 RV32I 寄存器、调用约定和指令选择。
+Cpu0 基线已经可作为教学参照。下一步已开始 `RiscvToy` Stage 1，让 `llc`
+能识别最小 target；之后再逐步加入 RV32I 寄存器、调用约定和指令选择。

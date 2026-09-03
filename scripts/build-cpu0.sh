@@ -22,7 +22,7 @@ cmake -G "${GENERATOR}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_ENABLE_PROJECTS=clang \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
-  -DLLVM_TARGETS_TO_BUILD=Cpu0
+  -DLLVM_TARGETS_TO_BUILD="Cpu0;RiscvToy"
 
 JOBS="${JOBS:-4}"
 cmake --build "${BUILD_DIR}" \

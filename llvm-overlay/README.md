@@ -37,3 +37,11 @@ definitions. The second group adds one Cpu0 intrinsic. The remaining groups
 register Cpu0 in LLVM build/target tooling. Without these files, `llc` and
 `llvm-objdump` may still partially work, but object-file and assembler-related
 features can fail or miss Cpu0 support.
+
+This workspace also adds a small `RiscvToy` teaching target on top of LBD.
+The corresponding repository-local changes are:
+
+```text
+llvm/CMakeLists.txt                  adds RiscvToy to LLVM_ALL_TARGETS
+llvm/lib/Support/Triple.cpp          parses "riscvtoy" as Triple::riscv32
+```

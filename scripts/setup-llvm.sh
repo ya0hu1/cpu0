@@ -71,9 +71,19 @@ rm -rf "${LLVM_DIR}/llvm/lib/Target/Cpu0"
 mkdir -p "${LLVM_DIR}/llvm/lib/Target/Cpu0"
 cp -a "${ROOT_DIR}/backend/Cpu0/." "${LLVM_DIR}/llvm/lib/Target/Cpu0/"
 
+log "Installing RiscvToy into LLVM"
+rm -rf "${LLVM_DIR}/llvm/lib/Target/RiscvToy"
+mkdir -p "${LLVM_DIR}/llvm/lib/Target/RiscvToy"
+cp -a "${ROOT_DIR}/backend/RiscvToy/." "${LLVM_DIR}/llvm/lib/Target/RiscvToy/"
+
 rm -rf "${LLVM_DIR}/llvm/test/CodeGen/Cpu0"
 mkdir -p "${LLVM_DIR}/llvm/test/CodeGen/Cpu0"
 cp -a "${ROOT_DIR}/backend/test/CodeGen/Cpu0/." \
       "${LLVM_DIR}/llvm/test/CodeGen/Cpu0/"
+
+rm -rf "${LLVM_DIR}/llvm/test/CodeGen/RiscvToy"
+mkdir -p "${LLVM_DIR}/llvm/test/CodeGen/RiscvToy"
+cp -a "${ROOT_DIR}/backend/test/CodeGen/RiscvToy/." \
+      "${LLVM_DIR}/llvm/test/CodeGen/RiscvToy/"
 
 log "LLVM source is ready at ${LLVM_DIR}"

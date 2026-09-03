@@ -298,6 +298,7 @@ set(LLVM_ALL_TARGETS
   Lanai
   Mips
   Cpu0
+  RiscvToy
   MSP430
   NVPTX
   PowerPC

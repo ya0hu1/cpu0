@@ -9,3 +9,4 @@
 - [03-riscv-roadmap.md](03-riscv-roadmap.md)：从 cpu0 过渡到 RISC-V 后端的分阶段路线
 - [04-llvm-overlay.md](04-llvm-overlay.md)：`llvm-overlay` 中每个文件的用途
 - [05-cpu0-baseline-result.md](05-cpu0-baseline-result.md)：Cpu0 基线构建与验证结果
+- [riscv/01-minimal-target.md](riscv/01-minimal-target.md)：RiscvToy Stage 1 最小 target 注册

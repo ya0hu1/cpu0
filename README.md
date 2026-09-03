@@ -31,7 +31,9 @@ build/bin/llc -march=cpu0 examples/cpu0/add.ll -o -
 
 ```text
 backend/Cpu0/             Cpu0 backend from Jonathan2251/lbd
+backend/RiscvToy/         New teaching RISC-V toy backend
 backend/test/CodeGen/Cpu0 Regression tests copied from LBD
+backend/test/CodeGen/RiscvToy RiscvToy Stage 1 lit tests
 llvm-overlay/llvm/        Files that must replace the corresponding LLVM files
 for_cpu0/                 Chinese study notes
 examples/cpu0/            Small runnable Cpu0 examples

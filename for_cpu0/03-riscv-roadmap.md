@@ -39,11 +39,14 @@ backend/test/CodeGen/RiscvToy/
 - 能把一个简单 `add` 函数打印成 Cpu0 汇编；
 - 至少跑通少量 CodeGen 测试。
 
-这一阶段还没有完成，因为当前环境需要网络拉取 LLVM 12。
+已完成，验证结果见
+[05-cpu0-baseline-result.md](05-cpu0-baseline-result.md)。
 
 ## 阶段 1：最小 RISC-V target 注册
 
-先不做指令选择，只让 LLVM 知道：
+已完成 Stage 1 代码，说明见
+[riscv/01-minimal-target.md](riscv/01-minimal-target.md)。
+它先不做指令选择，只让 LLVM 知道：
 
 ```text
 Triple: riscvtoy
@@ -51,10 +54,11 @@ Target: RiscvToy
 DataLayout: E-m:e-p:32:32-i64:64-n32-S64
 ```
 
-说明：
+实现说明：
 
-- 这里先用大端例子；实际 RV32I 通常是小端，所以后面会改成 `e`；
-- 需要新增 `Triple::riscvtoy` 时，不能直接覆盖上游 Triple 文件，后续可以迁移到 LLVM 的 target registration 或独立示例工具。
+- RiscvToy 直接复用 LLVM 已有的 `Triple::riscv32`，所以不需要新增架构枚举；
+- `Triple.cpp` 增加 `riscvtoy -> riscv32` 别名；
+- 当前 `addPassesToEmitFile()` 返回不支持，避免无 CodeGen 时崩溃。
 
 产出：
 
@@ -67,8 +71,11 @@ TargetInfo/RiscvToyTargetInfo.{cpp,h}
 验证：
 
 ```bash
-build/bin/llc -mtriple=riscvtoy --version
+build/bin/llc --version
 ```
+
+`--version` 会列出 `riscvtoy`。尝试让 `riscvtoy` 生成汇编时会得到
+“不支持生成这种文件类型”的明确错误。
 
 ## 阶段 2：寄存器模型
 
