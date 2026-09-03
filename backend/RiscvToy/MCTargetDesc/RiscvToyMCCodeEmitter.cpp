@@ -53,6 +53,19 @@ void RiscvToyMCCodeEmitter::expandPseudoCALL(
   emitRawBinary(getBinaryCodeForInstr(JAL, Fixups, STI), OS);
 }
 
+void RiscvToyMCCodeEmitter::expandPseudoCALLIndirect(
+    const MCInst &MI, raw_ostream &OS, SmallVectorImpl<MCFixup> &Fixups,
+    const MCSubtargetInfo &STI) const {
+  assert(MI.getOpcode() == RiscvToy::PseudoCALLIndirect &&
+         "Expected PseudoCALLIndirect");
+  MCInst JALR;
+  JALR.setOpcode(RiscvToy::RiscvToyJALR);
+  JALR.addOperand(MCOperand::createReg(RiscvToy::X1));
+  JALR.addOperand(MI.getOperand(0));
+  JALR.addOperand(MCOperand::createImm(0));
+  emitRawBinary(getBinaryCodeForInstr(JALR, Fixups, STI), OS);
+}
+
 void RiscvToyMCCodeEmitter::expandPseudoRET(
     const MCInst &MI, raw_ostream &OS, SmallVectorImpl<MCFixup> &Fixups,
     const MCSubtargetInfo &STI) const {
@@ -74,6 +87,9 @@ void RiscvToyMCCodeEmitter::encodeInstruction(
     return;
   case RiscvToy::PseudoCALL:
     expandPseudoCALL(MI, OS, Fixups, STI);
+    return;
+  case RiscvToy::PseudoCALLIndirect:
+    expandPseudoCALLIndirect(MI, OS, Fixups, STI);
     return;
   case RiscvToy::PseudoRET:
     expandPseudoRET(MI, OS, Fixups, STI);

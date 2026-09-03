@@ -21,3 +21,4 @@
 - [riscv/10-large-constants.md](riscv/10-large-constants.md)：RiscvToy Stage 10 32 位常量 materialization
 - [riscv/11-shifts.md](riscv/11-shifts.md)：RiscvToy Stage 11 移位指令
 - [riscv/12-byte-half-loads-stores.md](riscv/12-byte-half-loads-stores.md)：RiscvToy Stage 12 字节与半字访存
+- [riscv/13-indirect-calls.md](riscv/13-indirect-calls.md)：RiscvToy Stage 13 间接函数调用

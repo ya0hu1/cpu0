@@ -248,8 +248,8 @@ SDValue RiscvToyTargetLowering::LowerCall(CallLoweringInfo &CLI,
                                         G->getOffset());
   else if (ExternalSymbolSDNode *E = dyn_cast<ExternalSymbolSDNode>(Callee))
     Callee = DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT);
-  else
-    report_fatal_error("RiscvToy indirect calls are not supported yet");
+  // An indirect callee remains an ordinary i32 SDValue and becomes the
+  // register operand of PseudoCALLIndirect.
 
   SmallVector<SDValue, 8> Ops;
   Ops.push_back(Chain);

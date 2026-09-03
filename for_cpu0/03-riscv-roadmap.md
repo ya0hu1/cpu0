@@ -37,6 +37,7 @@ for_cpu0/
     10-large-constants.md
     11-shifts.md
     12-byte-half-loads-stores.md
+    13-indirect-calls.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -306,6 +307,18 @@ MCTargetDesc/
 2. `sb/sh` 窄 store 可用；
 3. signed/unsigned 扩展由 SelectionDAG 自动选择；
 4. parser、object、disassembler 都已同步。
+
+## 阶段 13：间接函数调用
+
+已完成，说明见
+[riscv/13-indirect-calls.md](riscv/13-indirect-calls.md)。
+
+现在：
+
+1. 函数指针作为普通 GPR callee 保留；
+2. `PseudoCALLIndirect` 展开为 `jalr x1, 0(rs1)`；
+3. caller-saved 信息与直接调用一致；
+4. assembly 与 object 输出都有测试。
 
 后续候选：
 

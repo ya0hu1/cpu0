@@ -404,6 +404,16 @@ def : Pat<(RiscvToyCallFlag tglobaladdr:$dst),
 def : Pat<(RiscvToyCallFlag texternalsym:$dst),
           (PseudoCALL texternalsym:$dst)>;
 
+let isCall = 1,
+    Defs = [X1, X5, X6, X7, X10, X11, X12, X13, X14, X15, X16, X17,
+            X28, X29, X30, X31],
+    isCodeGenOnly = 1 in
+def PseudoCALLIndirect : RiscvToyPseudo<(outs), (ins GPR:$rs1),
+                                         "jalr\tra, 0($rs1)", []>;
+
+def : Pat<(RiscvToyCallFlag GPR:$rs1),
+          (PseudoCALLIndirect GPR:$rs1)>;
+
 let Defs = [X2], Uses = [X2] in {
 def ADJCALLSTACKDOWN
     : RiscvToyPseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
