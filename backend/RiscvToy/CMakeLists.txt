@@ -40,3 +40,4 @@ add_llvm_target(RiscvToyCodeGen
 
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)
+add_subdirectory(Disassembler)

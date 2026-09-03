@@ -21,7 +21,7 @@ backend/RiscvToy/
   RiscvToyTargetMachine.cpp
   TargetInfo/
   MCTargetDesc/
-  InstPrinter/
+  Disassembler/
 for_cpu0/
   riscv/
     01-minimal-target.md
@@ -31,6 +31,7 @@ for_cpu0/
     05-function-call-frame.md
     06-branches-select.md
     07-mc-object.md
+    08-disassembler.md
 backend/test/CodeGen/RiscvToy/
 ```
 
@@ -240,14 +241,23 @@ MCTargetDesc/
 说明：Stage 4 已经完成了 `InstPrinter` 和文本汇编输出，这一阶段主要让
 `-filetype=obj` 和后续工具链真正可执行。
 
-## 阶段 8：MC 工具链与更多代码生成
+## 阶段 8：Disassembler
 
-下一步候选：
+已完成反汇编器，说明见
+[riscv/08-disassembler.md](riscv/08-disassembler.md)。
+
+现在：
+
+1. `llvm-objdump -d` 能反汇编 RiscvToy `.o`；
+2. 手写 decoder 按 opcode/funct3/funct7 解码 RV32I 子集；
+3. B/J 型立即数按 RISC-V 散位格式恢复；
+4. `ret` 别名在反汇编中保留。
+
+后续候选：
 
 1. AsmParser：让 `llvm-mc` 能把 RiscvToy 汇编文本解析成 MCInst；
-2. Disassembler：让 `llvm-objdump -d` 能反汇编 `.o` 中的 RiscvToy；
-3. 大常量与全局寻址：加入 `lui/auipc`、`lb/lh/lbu/lhu` 等常用 RV32I 指令；
-4. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
+2. 大常量与全局寻址：加入 `lui/auipc`、`lb/lh/lbu/lhu` 等常用 RV32I 指令；
+3. 分支范围外处理：为超过 B/J 型范围的跳转生成合法长序列。
 
 每个阶段仍然先加一个能被 lit 自动回归的 `.ll`/`.s` 测试，再做提交。
 
