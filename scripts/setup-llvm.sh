@@ -86,4 +86,9 @@ mkdir -p "${LLVM_DIR}/llvm/test/CodeGen/RiscvToy"
 cp -a "${ROOT_DIR}/backend/test/CodeGen/RiscvToy/." \
       "${LLVM_DIR}/llvm/test/CodeGen/RiscvToy/"
 
+rm -rf "${LLVM_DIR}/llvm/test/MC/RiscvToy"
+mkdir -p "${LLVM_DIR}/llvm/test/MC/RiscvToy"
+cp -a "${ROOT_DIR}/backend/test/MC/RiscvToy/." \
+      "${LLVM_DIR}/llvm/test/MC/RiscvToy/"
+
 log "LLVM source is ready at ${LLVM_DIR}"
